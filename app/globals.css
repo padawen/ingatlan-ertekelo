@@ -1,0 +1,92 @@
+
+/* stylelint-disable at-rule-no-unknown */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary-blue: #0c4a6e;
+  --secondary-blue: #0369a1;
+  --light-blue: #e0f2fe;
+  --gold: #b59410;
+  --light-gold: #fef9c3;
+}
+
+body {
+  font-family: 'Raleway', sans-serif;
+  background-color: #f8fafc;
+  color: #1e293b;
+}
+
+h1, h2, h3 {
+  font-family: 'Playfair Display', serif;
+}
+
+.form-container {
+  background: linear-gradient(to bottom right, rgba(255,255,255,0.9), rgba(255,255,255,0.8));
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+}
+
+.section-header {
+  border-bottom: 2px solid var(--gold);
+  padding-bottom: 0.5rem;
+  margin-bottom: 1.5rem;
+  color: var(--primary-blue);
+}
+
+.form-section {
+  background-color: white;
+  border-left: 4px solid var(--gold);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.submit-btn {
+  background-color: var(--primary-blue);
+  border: 2px solid var(--primary-blue);
+  transition: all 0.3s;
+}
+
+.submit-btn:hover {
+  background-color: var(--gold);
+  border-color: var(--gold);
+}
+
+.payment-option {
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.payment-option:hover {
+  transform: translateY(-2px);
+}
+
+.payment-option.selected {
+  border-color: var(--gold);
+  background-color: var(--light-gold);
+}
+
+.payment-option.selected .icon {
+  color: var(--gold);
+}
+
+.hidden-section {
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height 0.5s ease, opacity 0.5s ease, margin 0.5s ease;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.visible-section {
+  max-height: 2000px;
+  opacity: 1;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
+
+.page-background {
+  background-color: #f8fafc;
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%230c4a6e' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+}
