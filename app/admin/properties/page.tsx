@@ -32,6 +32,7 @@ export default function PropertiesPage() {
   useEffect(() => {
     checkUser()
     loadProperties()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const checkUser = async () => {

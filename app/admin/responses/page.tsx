@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { createClient } from '../../../lib/supabase/client'
 import AdminNavbar from '../../../components/AdminNavbar'
+import { generatePDF } from '../../../lib/pdfGenerator'
 
 interface FormResponse {
   id: string
@@ -15,6 +16,8 @@ interface FormResponse {
 interface Property {
   id: string
   location: string
+  price: number
+  dhLink: string
   hash: string
 }
 
@@ -31,6 +34,7 @@ export default function ResponsesPage() {
   useEffect(() => {
     checkUser()
     loadData()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const checkUser = async () => {
@@ -51,7 +55,7 @@ export default function ResponsesPage() {
       // Load properties
       const { data: propertiesData, error: propertiesError } = await supabase
         .from('properties')
-        .select('id, location, hash')
+        .select('*')
 
       if (propertiesError) throw propertiesError
 
@@ -68,6 +72,38 @@ export default function ResponsesPage() {
     if (!hash) return 'N/A'
     const property = properties.find(p => p.hash === hash)
     return property ? property.location : 'Ismeretlen ingatlan'
+  }
+
+  const getProperty = (hash?: string) => {
+    if (!hash) return undefined
+    return properties.find(p => p.hash === hash)
+  }
+
+  const handleDownloadPDF = (response: FormResponse) => {
+    const property = getProperty(response.propertyHash)
+    generatePDF(response, property)
+  }
+
+  const handleDeleteResponse = async (responseId: string) => {
+    if (!confirm('Biztosan törli ezt a válaszot? Ez a művelet nem visszavonható.')) {
+      return
+    }
+
+    try {
+      const { error } = await supabase
+        .from('form_responses')
+        .delete()
+        .eq('id', responseId)
+
+      if (error) throw error
+
+      // Újratöltjük a válaszokat
+      loadData()
+      alert('Válasz sikeresen törölve!')
+    } catch (error) {
+      console.error('Error deleting response:', error)
+      alert('Hiba történt a válasz törlésekor.')
+    }
   }
 
   const filteredResponses = responses.filter(response => {
@@ -95,48 +131,163 @@ export default function ResponsesPage() {
 
   const getHungarianLabel = (key: string) => {
     const labels: { [key: string]: string } = {
-      // Általános mezők
+      // Értékelés form mezők (ugyanabban a sorrendben mint a formban)
+      'property-rating': 'Ingatlan értékelés (1-5 skála)',
+      'property-feeling': 'Érzés az ingatlanban járva',
+      'most-liked': 'Mi tetszett a legjobban',
+      'disliked-option': 'Volt-e valami, ami kevésbé tetszett',
+      'disliked-details': 'Mi nem tetszett (részletek)',
+      'changes-option': 'Változtatna valamit az ingatlanon',
+      'changes-details': 'Mit változtatna (részletek)',
+      'advertisement-accuracy': 'Benyomás a hirdetés tükrében',
+      'price-realism': 'Ár realitása',
+      'realistic-price': 'Reálisnak tartott ár',
+      'questions-option': 'Van-e kérdése',
+      'questions-details': 'Kérdések (részletek)',
+      'revisit': 'Szeretné újra megtekinteni',
+      'purchase-offer': 'Szeretne vételi ajánlatot tenni',
+
+      // Mutatás form mezők (ugyanabban a sorrendben mint a formban)
+      'overall-satisfaction': 'Általános elégedettség (1-5 skála)',
+      'service-feeling': 'Érzés a szolgáltatásról',
+      'service-liked': 'Mi tetszett a szolgáltatásban',
+      'service-disliked-option': 'Volt-e valami, ami kevésbé tetszett a szolgáltatásban',
+      'service-disliked-details': 'Mi nem tetszett a szolgáltatásban (részletek)',
+      'service-changes-option': 'Változtatna valamit a szolgáltatáson',
+      'service-changes-details': 'Mit változtatna a szolgáltatáson (részletek)',
+      'service-expectations': 'Szolgáltatás az elvárások tükrében',
+      'service-value': 'Szolgáltatás értéke',
+      'service-worth': 'Mennyit érne a szolgáltatás',
+      'service-questions-option': 'Van-e kérdése a szolgáltatással kapcsolatban',
+      'service-questions-details': 'Kérdések a szolgáltatással kapcsolatban (részletek)',
+      'recommend-service': 'Ajánlaná a szolgáltatást',
+      'use-again': 'Igénybe venné újra a szolgáltatást',
+
+      // Igényfelmérés mezők
+      'previous-experience': 'Adott el vagy vett már ingatlant',
+      'agent-involved': 'Vett részt ingatlanközvetítő az adásvételben',
+      'current-agent-help': 'Segíti már a keresésüket ingatlanközvetítő',
+      'viewed-properties': 'Hány ingatlant néztek meg eddig',
+      'search-time': 'Mióta keresnek ingatlant',
+      'liked-property': 'Volt olyan ingatlan, ami nagyon tetszett',
+      'liked-property-details': 'Mi az, ami megfogta benne',
+      'not-purchased-reason': 'Miért nem vették meg',
+      'family-size-needs': 'Hány fős családnak keresnek otthont',
+      'preferred-location': 'Milyen településen/kerületben keresnek',
+      'transportation-needs': 'Milyen közlekedési igényeik vannak',
+      'urgency': 'Mennyire sürgős a költözés',
+      'family-additional-comments': 'Van-e egyéb családi szempontjuk',
+      'budget': 'Mi a tervezett költségkeret',
+      'cash-savings-time': 'Mennyi idő alatt tudják összegyűjteni a teljes összeget',
+      'down-payment': 'Mekkora önerő áll rendelkezésükre',
+      'down-savings-time': 'Mennyi idő alatt gyűjtik össze az önerőt',
+      'loan-type': 'Milyen hitelt terveznek igénybe venni',
+      'payment-other': 'Van-e egyéb pénzügyi megjegyzése',
+
+      // Kapcsolatfelvétel mezők
       'name': 'Név',
       'email': 'Email cím',
       'phone': 'Telefonszám',
-      'contact-preference': 'Kapcsolatfelvétel ideje',
-      'additional-comments': 'Egyéb megjegyzések',
-
-      // Értékelés form mezők
-      'property-rating': 'Ingatlan értékelés',
-      'price-rating': 'Ár értékelés',
-      'description-accuracy': 'Leírás pontossága',
-      'most-attractive': 'Legvonzóbb tulajdonság',
-      'main-problems': 'Főbb problémák',
-      'service-rating': 'Szolgáltatás értékelés',
-      'service-positives': 'Szolgáltatás pozitívumai',
-      'service-improvements': 'Szolgáltatás fejlesztések',
-      'would-recommend': 'Ajánlaná másoknak',
-      'continue-search': 'Folytatja a keresést',
-      'more-properties': 'További ingatlanok',
-      'parameter-changes': 'Paraméter módosítások',
-
-      // Mutatás form mezők
-      'overall-satisfaction': 'Általános elégedettség',
-      'liked-most': 'Mi tetszett leginkább',
-      'negatives': 'Negatívumok',
-      'interested': 'Érdeklődés szintje',
-      'offer-price': 'Ajánlati ár',
-      'offer-conditions': 'Ajánlati feltételek',
-
-      // Igényfelmérés mezők
-      'viewed-properties': 'Megtekintett ingatlanok',
-      'search-time': 'Keresési idő',
-      'liked-property': 'Tetszett-e ingatlan',
-      'family-size-needs': 'Család és igények',
-      'preferred-location': 'Preferált helyszín',
-      'transportation-needs': 'Közlekedési igények',
-      'time-urgency': 'Időbeli sürgősség',
-      'budget': 'Költségvetés',
-      'payment-method-type': 'Fizetési mód'
+      'call-time': 'Mikor hívjam fel',
+      'contact-preference': 'Kapcsolatfelvétel módja',
+      'additional-comments': 'Egyéb megjegyzések'
     }
 
     return labels[key] || key.replace(/[-_]/g, ' ').replace(/^\w/, c => c.toUpperCase())
+  }
+
+  // Értékelés form kérdések sorrendje (ahogy a formban vannak)
+  const getFieldOrder = (formType: string) => {
+    if (formType === 'ertekeles') {
+      return [
+        'property-rating',
+        'property-feeling', 
+        'most-liked',
+        'disliked-option',
+        'disliked-details',
+        'changes-option',
+        'changes-details',
+        'advertisement-accuracy',
+        'price-realism',
+        'realistic-price',
+        'questions-option',
+        'questions-details',
+        'revisit',
+        'purchase-offer',
+        'name',
+        'phone',
+        'email',
+        'call-time'
+      ]
+         } else if (formType === 'mutatas') {
+       // A mutatás form ugyanazokat a mezőket használja mint az értékelés form
+       return [
+         'property-rating',
+         'property-feeling', 
+         'most-liked',
+         'disliked-option',
+         'disliked-details',
+         'changes-option',
+         'changes-details',
+         'advertisement-accuracy',
+         'price-realism',
+         'realistic-price',
+         'questions-option',
+         'questions-details',
+         'revisit',
+         'purchase-offer',
+         'name',
+         'phone',
+         'email',
+         'call-time'
+       ]
+     } else if (formType === 'igenyfelmeres') {
+       return [
+         'previous-experience',
+         'agent-involved',
+         'current-agent-help',
+         'viewed-properties',
+         'search-time',
+         'liked-property',
+         'liked-property-details',
+         'not-purchased-reason',
+         'family-size-needs',
+         'preferred-location',
+         'transportation-needs',
+         'urgency',
+         'family-additional-comments',
+         'budget',
+         'cash-savings-time',
+         'down-payment',
+         'down-savings-time',
+         'loan-type',
+         'payment-other',
+         'additional-comments'
+       ]
+    }
+    return []
+  }
+
+  // Rendezett válaszok megjelenítése
+  const getOrderedAnswers = (response: FormResponse) => {
+    const fieldOrder = getFieldOrder(response.formType)
+    const orderedEntries: [string, any][] = []
+    
+    // Először a rendezett mezők
+    fieldOrder.forEach(field => {
+      if (response.answers[field] !== undefined && response.answers[field] !== '') {
+        orderedEntries.push([field, response.answers[field]])
+      }
+    })
+    
+    // Aztán a többi mező (ha van olyan ami nincs a listában)
+    Object.entries(response.answers).forEach(([key, value]) => {
+      if (!fieldOrder.includes(key) && value !== undefined && value !== '') {
+        orderedEntries.push([key, value])
+      }
+    })
+    
+    return orderedEntries
   }
 
   if (loading) {
@@ -249,12 +400,26 @@ export default function ResponsesPage() {
                           {new Date(response.submittedAt).toLocaleString('hu-HU')}
                         </td>
                         <td className="py-3 px-4">
-                          <button
-                            onClick={() => setSelectedResponse(response)}
-                            className="text-xs px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
-                          >
-                            👁️ Megtekintés
-                          </button>
+                          <div className="flex gap-2 flex-wrap">
+                            <button
+                              onClick={() => setSelectedResponse(response)}
+                              className="text-xs px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+                            >
+                              👁️ Megtekintés
+                            </button>
+                            <button
+                              onClick={() => handleDownloadPDF(response)}
+                              className="text-xs px-3 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200"
+                            >
+                              📄 PDF
+                            </button>
+                            <button
+                              onClick={() => handleDeleteResponse(response.id)}
+                              className="text-xs px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200"
+                            >
+                              🗑️ Törlés
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -284,19 +449,27 @@ export default function ResponsesPage() {
                   </p>
                 )}
               </div>
-              <button
-                onClick={() => setSelectedResponse(null)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handleDownloadPDF(selectedResponse)}
+                  className="px-3 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 text-sm"
+                >
+                  📄 PDF letöltés
+                </button>
+                <button
+                  onClick={() => setSelectedResponse(null)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
             </div>
             
             <div className="p-6 overflow-y-auto max-h-[70vh]">
               <div className="space-y-4">
-                {Object.entries(selectedResponse.answers).map(([key, value]) => (
+                {getOrderedAnswers(selectedResponse).map(([key, value]) => (
                   <div key={key} className="border-b pb-2">
                     <div className="font-medium text-gray-700 mb-1">
                       {getHungarianLabel(key)}:
