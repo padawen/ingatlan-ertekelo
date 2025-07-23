@@ -112,9 +112,12 @@ docker-compose ps
 
 ### Manuális Docker használat
 
-1. **Build:**
+1. **Build (Supabase kulcsokkal):**
 ```bash
-docker build -t ingatlanertekelo .
+docker build \
+  --build-arg NEXT_PUBLIC_SUPABASE_URL=your_supabase_url \
+  --build-arg NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_key \
+  -t ingatlanertekelo .
 ```
 
 2. **Futtatás:**
